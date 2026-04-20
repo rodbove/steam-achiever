@@ -100,7 +100,7 @@ export async function buildAchievementBoard(
       const globalMap = new Map<string, number>();
       if (globalRes) {
         for (const a of globalRes.achievementpercentages.achievements ?? []) {
-          globalMap.set(a.name, a.percent);
+          globalMap.set(a.name, Number(a.percent));
         }
       }
 
