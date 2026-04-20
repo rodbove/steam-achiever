@@ -8,6 +8,7 @@ interface LlmJudgement {
   estimatedMinutes: number;
   difficulty: 1 | 2 | 3 | 4 | 5;
   reason: string;
+  requiresDLC?: boolean;
 }
 
 export async function refineWithLlm(
@@ -33,7 +34,7 @@ export async function refineWithLlm(
   const toQuery: ScoredAchievement[] = [];
   const cachedJudgements = new Map<string, LlmJudgement>();
   for (const c of candidates) {
-    const ck = `llm:${c.appid}:${c.apiname}`;
+    const ck = `llm2:${c.appid}:${c.apiname}`;
     const hit = await cacheGet<LlmJudgement>(ck, REFINE_TTL);
     if (hit) cachedJudgements.set(ck, hit);
     else toQuery.push(c);
@@ -53,6 +54,7 @@ export async function refineWithLlm(
 1. estimatedMinutes: realistic time for an average player who already owns/plays the game to unlock it (focused effort, not idle play)
 2. difficulty: 1-5 (1=trivial menu click, 2=15min task, 3=hour-ish session, 4=skill or grind, 5=brutal)
 3. reason: 8 words max, why
+4. requiresDLC: true if the achievement is locked behind a paid DLC/expansion the base game owner wouldn't have (e.g. story DLCs, song packs, content packs). false otherwise. Be conservative — only flag true if you're confident.
 
 Respond with a JSON array, one object per achievement, in the same order. No prose, no markdown fences.
 
@@ -80,7 +82,7 @@ ${JSON.stringify(items, null, 2)}`;
       for (let i = 0; i < toQuery.length; i++) {
         const j = judgements[i];
         if (!j) continue;
-        const ck = `llm:${toQuery[i].appid}:${toQuery[i].apiname}`;
+        const ck = `llm2:${toQuery[i].appid}:${toQuery[i].apiname}`;
         await cacheSet(ck, j);
         cachedJudgements.set(ck, j);
       }
@@ -92,7 +94,7 @@ ${JSON.stringify(items, null, 2)}`;
 
   // Apply judgements
   return achievements.map((a) => {
-    const ck = `llm:${a.appid}:${a.apiname}`;
+    const ck = `llm2:${a.appid}:${a.apiname}`;
     const j = cachedJudgements.get(ck);
     if (!j) return a;
     return {
@@ -101,6 +103,7 @@ ${JSON.stringify(items, null, 2)}`;
       difficulty: j.difficulty,
       scoreReason: `AI: ${j.reason}`,
       llmRefined: true,
+      requiresDLC: j.requiresDLC ?? false,
     };
   });
 }

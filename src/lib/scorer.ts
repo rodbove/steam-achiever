@@ -29,6 +29,9 @@ interface ScoreInput {
   icon: string;
   globalPercent: number;
   yourPlaytimeMinutes: number;
+  gameUnlockedCount: number;
+  gameTotalAchievements: number;
+  gameUnlockRatio: number;
 }
 
 export function scoreAchievement(input: ScoreInput): ScoredAchievement {

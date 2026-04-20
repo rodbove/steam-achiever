@@ -3,11 +3,14 @@
 import type { ScoredAchievement } from '@/lib/steam-types';
 
 export type TimeFilter = 'all' | 'q' | 'm' | 'h';
+export type SortMode = 'quick' | 'completion';
 
 export interface FilterState {
   time: TimeFilter;
   search: string;
   game: string; // appid as string, '' = all
+  sort: SortMode;
+  hideDLC: boolean;
 }
 
 interface Props {
@@ -35,13 +38,42 @@ export function Filters({ filters, onChange, games, totalCount, filteredCount }:
     </button>
   );
 
+  const sortChip = (key: SortMode, label: string, sub: string) => (
+    <button
+      key={key}
+      onClick={() => update({ sort: key })}
+      className={`border px-3 py-1.5 text-left font-mono text-[11px] uppercase tracking-wider transition-colors ${
+        filters.sort === key
+          ? 'border-ember bg-ember text-bone'
+          : 'border-ink/30 text-ink/70 hover:border-ink hover:text-ink'
+      }`}
+    >
+      <span>{label}</span>
+      <span className="ml-2 opacity-60 normal-case">{sub}</span>
+    </button>
+  );
+
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {sortChip('quick', 'quick wins', 'fastest first')}
+        {sortChip('completion', 'push to 100%', 'most unlocked games first')}
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         {chip('all', 'all')}
         {chip('q', '≤ 15 min')}
         {chip('m', '≤ 1 h')}
         {chip('h', '≤ 4 h')}
+        <label className="ml-auto flex cursor-pointer items-center gap-2 border border-ink/30 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider hover:border-ink">
+          <input
+            type="checkbox"
+            checked={filters.hideDLC}
+            onChange={(e) => update({ hideDLC: e.target.checked })}
+            className="h-3.5 w-3.5 accent-ember"
+          />
+          <span>hide DLC-gated</span>
+        </label>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -77,11 +109,12 @@ export function applyFilters(
   list: ScoredAchievement[],
   filters: FilterState,
 ): ScoredAchievement[] {
-  return list.filter((a) => {
+  const filtered = list.filter((a) => {
     if (filters.time === 'q' && a.estimatedMinutes > 15) return false;
     if (filters.time === 'm' && a.estimatedMinutes > 60) return false;
     if (filters.time === 'h' && a.estimatedMinutes > 240) return false;
     if (filters.game && String(a.appid) !== filters.game) return false;
+    if (filters.hideDLC && a.requiresDLC) return false;
     if (filters.search) {
       const q = filters.search.toLowerCase();
       const hay = `${a.displayName} ${a.gameName} ${a.description}`.toLowerCase();
@@ -89,6 +122,26 @@ export function applyFilters(
     }
     return true;
   });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (filters.sort === 'completion') {
+      // Highest completion % first, then easiest within that game
+      if (b.gameUnlockRatio !== a.gameUnlockRatio) {
+        return b.gameUnlockRatio - a.gameUnlockRatio;
+      }
+      if (a.estimatedMinutes !== b.estimatedMinutes) {
+        return a.estimatedMinutes - b.estimatedMinutes;
+      }
+      return b.globalPercent - a.globalPercent;
+    }
+    // 'quick' — fastest first, then most common
+    if (a.estimatedMinutes !== b.estimatedMinutes) {
+      return a.estimatedMinutes - b.estimatedMinutes;
+    }
+    return b.globalPercent - a.globalPercent;
+  });
+
+  return sorted;
 }
 
 // Pick a varied "today's hunt" - different games, low time

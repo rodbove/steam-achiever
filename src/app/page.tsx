@@ -13,7 +13,13 @@ export default function Home() {
   const [steamId, setSteamId] = useState<string>('');
   const [board, setBoard] = useState<BoardResult | null>(null);
   const [pending, startTransition] = useTransition();
-  const [filters, setFilters] = useState<FilterState>({ time: 'all', search: '', game: '' });
+  const [filters, setFilters] = useState<FilterState>({
+    time: 'all',
+    search: '',
+    game: '',
+    sort: 'quick',
+    hideDLC: false,
+  });
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -172,7 +178,7 @@ export default function Home() {
       )}
 
       <footer className="mt-20 border-t border-ink/15 pt-6 font-mono text-[11px] uppercase tracking-wider text-ink/40">
-        achiever · uses the steam web api · cache stored locally in .cache/steam.db
+        achiever · uses the steam web api · cache backed by supabase
       </footer>
     </main>
   );

@@ -111,6 +111,10 @@ export async function buildAchievementBoard(
         }
       }
 
+      const totalAchievements = schema.length;
+      const unlockedCount = unlockedSet.size;
+      const gameUnlockRatio = totalAchievements > 0 ? unlockedCount / totalAchievements : 0;
+
       const scored: ScoredAchievement[] = [];
       for (const ach of schema) {
         if (unlockedSet.has(ach.name)) continue; // hide unlocked per user pref
@@ -125,6 +129,9 @@ export async function buildAchievementBoard(
             icon: ach.icon,
             globalPercent: globalMap.get(ach.name) ?? 0,
             yourPlaytimeMinutes: g.playtime_forever,
+            gameUnlockedCount: unlockedCount,
+            gameTotalAchievements: totalAchievements,
+            gameUnlockRatio,
           }),
         );
       }

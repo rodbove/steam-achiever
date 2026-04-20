@@ -76,6 +76,10 @@ export interface ScoredAchievement {
   scoreReason: string;
   // LLM-refined (optional)
   llmRefined?: boolean;
+  requiresDLC?: boolean;
   // Game context
   yourPlaytimeMinutes: number;
+  gameUnlockedCount: number;
+  gameTotalAchievements: number;
+  gameUnlockRatio: number; // 0-1
 }

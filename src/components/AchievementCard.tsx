@@ -60,6 +60,12 @@ export function AchievementCard({ achievement: a, index, isTopPick }: Props) {
 
         <p className="mt-0.5 truncate font-mono text-[11px] uppercase tracking-wider text-ink/60">
           {a.gameName}
+          {a.gameTotalAchievements > 0 && (
+            <span className="ml-2 text-ink/40">
+              · {a.gameUnlockedCount}/{a.gameTotalAchievements}
+              {' '}({Math.round(a.gameUnlockRatio * 100)}%)
+            </span>
+          )}
         </p>
 
         {a.description && (
@@ -73,6 +79,9 @@ export function AchievementCard({ achievement: a, index, isTopPick }: Props) {
           <span className="font-mono">{a.globalPercent.toFixed(1)}% globally</span>
           {a.llmRefined && (
             <span className="font-mono uppercase tracking-wider text-ember">AI scored</span>
+          )}
+          {a.requiresDLC && (
+            <span className="font-mono uppercase tracking-wider text-rust">DLC-gated</span>
           )}
           {a.hidden && (
             <span className="font-mono uppercase tracking-wider text-rust">hidden</span>
