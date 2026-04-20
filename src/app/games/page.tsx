@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import Link from 'next/link';
 import { loadGamesProgress, type GamesResult, type GameProgress } from '../actions';
 import { Header } from '@/components/Header';
 import { SteamIdForm } from '@/components/SteamIdForm';
+import { AchievementCard } from '@/components/AchievementCard';
 
 const STORAGE_KEY = 'achiever:steamid';
 
@@ -162,52 +162,81 @@ function Stat({
 }
 
 function GameRow({ game: g, index }: { game: GameProgress; index: number }) {
+  const [open, setOpen] = useState(false);
   const pct = Math.round(g.ratio * 100);
   const isComplete = pct >= 100;
+  const canExpand = g.topNext.length > 0;
 
   return (
-    <article
-      className="rise flex items-center gap-4 border-b border-ink/15 px-4 py-3 transition-colors hover:bg-ink/[0.03]"
+    <div
+      className="rise border-b border-ink/15"
       style={{ animationDelay: `${Math.min(index * 20, 500)}ms` }}
     >
-      <div className="flex-shrink-0 border border-ink/30 bg-ink/5">
-        {g.iconUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={g.iconUrl} alt="" width={32} height={32} className="block h-8 w-8" />
-        ) : (
-          <div className="h-8 w-8" />
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => canExpand && setOpen((v) => !v)}
+        disabled={!canExpand}
+        className={`flex w-full items-center gap-4 px-4 py-3 text-left transition-colors ${
+          canExpand ? 'cursor-pointer hover:bg-ink/[0.03]' : 'cursor-default'
+        } ${open ? 'bg-ink/[0.03]' : ''}`}
+        aria-expanded={open}
+      >
+        <span
+          className={`flex-shrink-0 font-mono text-sm text-ink/40 transition-transform ${
+            open ? 'rotate-90 text-ember' : ''
+          } ${!canExpand ? 'opacity-0' : ''}`}
+          aria-hidden
+        >
+          ▸
+        </span>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-3">
-          <Link
-            href={`/?game=${g.appid}`}
-            className="truncate font-display text-base font-medium hover:text-ember"
-          >
-            {g.name}
-          </Link>
-          <span
-            className={`flex-shrink-0 font-mono text-xs font-medium uppercase tracking-wider ${
-              isComplete ? 'text-ember' : 'text-ink/70'
-            }`}
-          >
-            {pct}%
-          </span>
+        <div className="flex-shrink-0 border border-ink/30 bg-ink/5">
+          {g.iconUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={g.iconUrl} alt="" width={32} height={32} className="block h-8 w-8" />
+          ) : (
+            <div className="h-8 w-8" />
+          )}
         </div>
 
-        <div className="mt-1.5 flex items-center gap-3">
-          <div className="h-1.5 flex-1 bg-ink/10">
-            <div
-              className={`h-full transition-all ${isComplete ? 'bg-ember' : 'bg-ink'}`}
-              style={{ width: `${pct}%` }}
-            />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="truncate font-display text-base font-medium">{g.name}</span>
+            <span
+              className={`flex-shrink-0 font-mono text-xs font-medium uppercase tracking-wider ${
+                isComplete ? 'text-ember' : 'text-ink/70'
+              }`}
+            >
+              {pct}%
+            </span>
           </div>
-          <span className="flex-shrink-0 font-mono text-[11px] text-ink/55">
-            {g.unlockedCount}/{g.totalAchievements}
-          </span>
+
+          <div className="mt-1.5 flex items-center gap-3">
+            <div className="h-1.5 flex-1 bg-ink/10">
+              <div
+                className={`h-full transition-all ${isComplete ? 'bg-ember' : 'bg-ink'}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <span className="flex-shrink-0 font-mono text-[11px] text-ink/55">
+              {g.unlockedCount}/{g.totalAchievements}
+            </span>
+          </div>
         </div>
-      </div>
-    </article>
+      </button>
+
+      {open && (
+        <div className="border-t border-ink/10 bg-ink/[0.015] pl-10">
+          <div className="border-l-2 border-ember/40">
+            <p className="px-4 pt-3 font-mono text-[10px] uppercase tracking-widest text-ink/50">
+              next up — top {g.topNext.length} easiest
+            </p>
+            {g.topNext.map((a, i) => (
+              <AchievementCard key={`${a.appid}-${a.apiname}`} achievement={a} index={i} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

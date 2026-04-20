@@ -21,6 +21,7 @@ export interface GameProgress {
   unlockedCount: number;
   totalAchievements: number;
   ratio: number; // 0-1
+  topNext: ScoredAchievement[]; // top 5 locked achievements by estimatedMinutes asc
 }
 
 export interface GamesResult {
@@ -68,6 +69,14 @@ export async function loadGamesProgress(steamId: string): Promise<GamesResult> {
       const icon = g.game.img_icon_url
         ? `https://media.steampowered.com/steamcommunity/public/images/apps/${g.game.appid}/${g.game.img_icon_url}.jpg`
         : null;
+      const topNext = [...g.achievements]
+        .sort((a, b) => {
+          if (a.estimatedMinutes !== b.estimatedMinutes) {
+            return a.estimatedMinutes - b.estimatedMinutes;
+          }
+          return b.globalPercent - a.globalPercent;
+        })
+        .slice(0, 5);
       return {
         appid: g.game.appid,
         name: g.game.name,
@@ -76,6 +85,7 @@ export async function loadGamesProgress(steamId: string): Promise<GamesResult> {
         unlockedCount: g.unlockedCount,
         totalAchievements: g.totalAchievements,
         ratio: g.totalAchievements > 0 ? g.unlockedCount / g.totalAchievements : 0,
+        topNext,
       };
     });
     progress.sort((a, b) => {
