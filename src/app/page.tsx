@@ -1,30 +1,36 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { Suspense, useEffect, useMemo, useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { loadBoard, clearCache, type BoardResult } from './actions';
 import { SteamIdForm } from '@/components/SteamIdForm';
 import { Filters, applyFilters, pickTodaysHunt, type FilterState } from '@/components/Filters';
 import { AchievementCard } from '@/components/AchievementCard';
+import { Header } from '@/components/Header';
 import type { ScoredAchievement } from '@/lib/steam-types';
 
 const STORAGE_KEY = 'achiever:steamid';
 
 export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeInner />
+    </Suspense>
+  );
+}
+
+function HomeInner() {
   const [steamId, setSteamId] = useState<string>('');
   const [board, setBoard] = useState<BoardResult | null>(null);
   const [pending, startTransition] = useTransition();
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState<FilterState>({
     time: 'all',
     search: '',
-    game: '',
+    game: searchParams.get('game') ?? '',
     sort: 'quick',
     hideDLC: false,
   });
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) setSteamId(stored);
-  }, []);
 
   const handleLoad = (id: string, useLlm: boolean) => {
     localStorage.setItem(STORAGE_KEY, id);
@@ -34,6 +40,21 @@ export default function Home() {
       setBoard(result);
     });
   };
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const envId = process.env.NEXT_PUBLIC_DEFAULT_STEAM_ID;
+    const id = stored || envId || '';
+    if (id) {
+      setSteamId(id);
+      // Auto-load if we have an env-default or a stored id
+      startTransition(async () => {
+        const result = await loadBoard(id, true);
+        setBoard(result);
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRefresh = () => {
     if (!steamId) return;
@@ -181,24 +202,6 @@ export default function Home() {
         achiever · uses the steam web api · cache backed by supabase
       </footer>
     </main>
-  );
-}
-
-function Header() {
-  return (
-    <header className="flex items-baseline justify-between border-b border-ink/20 pb-4">
-      <div>
-        <h1 className="font-display text-4xl font-bold leading-none tracking-tight sm:text-5xl">
-          achiever
-        </h1>
-        <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.2em] text-ink/55">
-          a steam hunting log
-        </p>
-      </div>
-      <span className="font-mono text-[11px] uppercase tracking-wider text-ink/40">
-        v0.1
-      </span>
-    </header>
   );
 }
 
