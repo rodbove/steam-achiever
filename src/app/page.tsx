@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { loadBoard, clearCache, type BoardResult } from './actions';
+import { loadBoard, clearCache, type BoardResult, type LibraryStats } from './actions';
 import { SteamIdForm } from '@/components/SteamIdForm';
 import { Filters, applyFilters, pickTodaysHunt, type FilterState } from '@/components/Filters';
 import { AchievementCard } from '@/components/AchievementCard';
@@ -140,6 +140,7 @@ function HomeInner() {
           <Stats
             achievements={board.achievements}
             gameCount={board.gameCount ?? 0}
+            libraryStats={board.stats}
             steamId={steamId}
             onRefresh={handleRefresh}
             onReset={handleReset}
@@ -218,6 +219,7 @@ function Tip({ num, title, children }: { num: string; title: string; children: R
 function Stats({
   achievements,
   gameCount,
+  libraryStats,
   steamId,
   onRefresh,
   onReset,
@@ -225,21 +227,35 @@ function Stats({
 }: {
   achievements: ScoredAchievement[];
   gameCount: number;
+  libraryStats?: LibraryStats;
   steamId: string;
   onRefresh: () => void;
   onReset: () => void;
   refreshing: boolean;
 }) {
   const quick = achievements.filter((a) => a.estimatedMinutes <= 15).length;
-  const medium = achievements.filter((a) => a.estimatedMinutes > 15 && a.estimatedMinutes <= 60).length;
   const refined = achievements.filter((a) => a.llmRefined).length;
+  const avgPct = libraryStats ? Math.round(libraryStats.averageRatio * 100) : 0;
 
   return (
     <div className="border-2 border-ink">
-      <div className="grid grid-cols-2 divide-ink/15 border-b-2 border-ink sm:grid-cols-4 sm:divide-x">
+      <div className="grid grid-cols-2 divide-ink/15 border-b border-ink/15 sm:grid-cols-4 sm:divide-x">
         <Stat label="games" value={gameCount} />
+        <Stat
+          label="100% done"
+          value={libraryStats?.completedGames ?? 0}
+          accent
+        />
+        <Stat
+          label="unlocks"
+          value={libraryStats?.totalUnlocked ?? 0}
+          sub={libraryStats ? `of ${libraryStats.totalPossible.toLocaleString()}` : undefined}
+        />
+        <Stat label="avg completion" value={avgPct} suffix="%" />
+      </div>
+      <div className="grid grid-cols-2 divide-ink/15 border-b-2 border-ink sm:grid-cols-3 sm:divide-x">
         <Stat label="locked" value={achievements.length} />
-        <Stat label="≤ 15 min" value={quick} accent />
+        <Stat label="≤ 15 min" value={quick} />
         <Stat label="ai refined" value={refined} />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -266,11 +282,29 @@ function Stats({
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function Stat({
+  label,
+  value,
+  accent,
+  sub,
+  suffix,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+  sub?: string;
+  suffix?: string;
+}) {
   return (
     <div className={`p-4 ${accent ? 'bg-ember/10' : ''}`}>
-      <p className="font-display text-3xl font-bold leading-none">{value.toLocaleString()}</p>
-      <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-ink/55">{label}</p>
+      <p className="font-display text-3xl font-bold leading-none">
+        {value.toLocaleString()}
+        {suffix && <span className="text-xl text-ink/55">{suffix}</span>}
+      </p>
+      <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-ink/55">
+        {label}
+        {sub && <span className="ml-1 normal-case text-ink/40">· {sub}</span>}
+      </p>
     </div>
   );
 }

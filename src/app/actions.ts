@@ -5,10 +5,19 @@ import { refineWithLlm } from '@/lib/llm-refiner';
 import { cacheClear } from '@/lib/cache';
 import type { ScoredAchievement } from '@/lib/steam-types';
 
+export interface LibraryStats {
+  gameCount: number;
+  completedGames: number; // 100% unlocked
+  totalUnlocked: number;
+  totalPossible: number;
+  averageRatio: number; // 0-1, mean of per-game ratios
+}
+
 export interface BoardResult {
   ok: boolean;
   achievements?: ScoredAchievement[];
   gameCount?: number;
+  stats?: LibraryStats;
   errors?: string[];
   message?: string;
 }
@@ -52,7 +61,25 @@ export async function loadBoard(steamId: string, useLlm: boolean): Promise<Board
       return b.globalPercent - a.globalPercent;
     });
 
-    return { ok: true, achievements: all, gameCount: games.length, errors };
+    const completedGames = games.filter(
+      (g) => g.totalAchievements > 0 && g.unlockedCount === g.totalAchievements,
+    ).length;
+    const totalUnlocked = games.reduce((s, g) => s + g.unlockedCount, 0);
+    const totalPossible = games.reduce((s, g) => s + g.totalAchievements, 0);
+    const ratios = games
+      .filter((g) => g.totalAchievements > 0)
+      .map((g) => g.unlockedCount / g.totalAchievements);
+    const averageRatio = ratios.length > 0 ? ratios.reduce((s, r) => s + r, 0) / ratios.length : 0;
+
+    const stats: LibraryStats = {
+      gameCount: games.length,
+      completedGames,
+      totalUnlocked,
+      totalPossible,
+      averageRatio,
+    };
+
+    return { ok: true, achievements: all, gameCount: games.length, stats, errors };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : String(e) };
   }
