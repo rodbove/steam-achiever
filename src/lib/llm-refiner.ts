@@ -34,7 +34,7 @@ export async function refineWithLlm(
   const toQuery: ScoredAchievement[] = [];
   const cachedJudgements = new Map<string, LlmJudgement>();
   for (const c of candidates) {
-    const ck = `llm2:${c.appid}:${c.apiname}`;
+    const ck = `llm3:${c.appid}:${c.apiname}`;
     const hit = await cacheGet<LlmJudgement>(ck, REFINE_TTL);
     if (hit) cachedJudgements.set(ck, hit);
     else toQuery.push(c);
@@ -82,7 +82,7 @@ ${JSON.stringify(items, null, 2)}`;
       for (let i = 0; i < toQuery.length; i++) {
         const j = judgements[i];
         if (!j) continue;
-        const ck = `llm2:${toQuery[i].appid}:${toQuery[i].apiname}`;
+        const ck = `llm3:${toQuery[i].appid}:${toQuery[i].apiname}`;
         await cacheSet(ck, j);
         cachedJudgements.set(ck, j);
       }
@@ -94,7 +94,7 @@ ${JSON.stringify(items, null, 2)}`;
 
   // Apply judgements
   return achievements.map((a) => {
-    const ck = `llm2:${a.appid}:${a.apiname}`;
+    const ck = `llm3:${a.appid}:${a.apiname}`;
     const j = cachedJudgements.get(ck);
     if (!j) return a;
     return {
