@@ -62,13 +62,18 @@ export function scoreAchievement(input: ScoreInput): ScoredAchievement {
     baseReason = `${input.globalPercent.toFixed(1)}% extremely rare`;
   }
 
-  // Refine with text patterns
+  // Refine with text patterns.
+  // QUICK patterns only apply when global % is high enough to corroborate —
+  // otherwise "Welcome" keywords trigger on mission names (e.g. "Complete 'Welcome Back'")
+  // and wrongly slash the estimate.
   let patternReason = '';
-  for (const p of QUICK_PATTERNS) {
-    if (p.re.test(text)) {
-      estimatedMinutes = Math.min(estimatedMinutes, p.minutes);
-      patternReason = p.reason;
-      break;
+  if (input.globalPercent >= 40) {
+    for (const p of QUICK_PATTERNS) {
+      if (p.re.test(text)) {
+        estimatedMinutes = Math.min(estimatedMinutes, p.minutes);
+        patternReason = p.reason;
+        break;
+      }
     }
   }
   if (!patternReason) {
